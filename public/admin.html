@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head><title>Admin</title></head>
+<body>
+<h1>Admin Panel</h1>
+<input id="u" placeholder="user">
+<input id="p" placeholder="pass">
+<button onclick="login()">Giriş</button>
+<div id="panel"></div>
+
+<script>
+async function login(){
+  const res = await fetch("/admin/login",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username:u.value,password:p.value})
+  });
+  const d = await res.json();
+  if(d.ok){ load(); }
+}
+
+async function load(){
+  const res = await fetch("/admin/users");
+  const data = await res.json();
+  let html="";
+  for(let u in data){
+    html += u+" W:"+data[u].wins+" L:"+data[u].losses+"<br>";
+  }
+  panel.innerHTML = html;
+}
+</script>
+</body>
+</html>

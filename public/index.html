@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Pişti</title>
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<h1>Pişti Lobby</h1>
+<input id="name" placeholder="İsmin">
+<button onclick="login()">Giriş</button>
+<div id="lobby"></div>
+
+<script>
+const socket = io();
+let username="";
+
+async function login(){
+  username = document.getElementById("name").value;
+  await fetch("/login",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username})
+  });
+  socket.emit("joinLobby", username);
+}
+
+socket.on("lobby", list=>{
+  document.getElementById("lobby").innerText = list.join(" | ");
+});
+</script>
+</body>
+</html>
