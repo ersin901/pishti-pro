@@ -67,16 +67,20 @@ let lobby = [];
 
 io.on("connection", socket => {
 
- socket.on("joinLobby", username => {
+socket.on("joinLobby", username => {
 
   socket.username = username;
 
-  // 🔴 BURASI DEĞİŞTİ (ÖNEMLİ)
+  // aynı kullanıcıyı temizle
   lobby = lobby.filter(s => s.username !== username);
+
+  // disconnected temizle
+  lobby = lobby.filter(s => s.connected);
 
   lobby.push(socket);
 
   io.emit("lobby", lobby.map(s => s.username));
+
 });
 
 
