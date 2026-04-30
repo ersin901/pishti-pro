@@ -72,8 +72,12 @@ io.on("connection", socket => {
     io.emit("lobby", lobby.map(s => s.username));
   });
 
-  socket.on("disconnect", () => {
-    lobby = lobby.filter(s => s.id !== socket.id);
+ socket.on("disconnect", () => {
+  lobby = lobby.filter(s => s !== socket);
+
+  io.emit("lobby", lobby.map(s => s.username));
+});
+    
   });
 });
 
