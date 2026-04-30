@@ -71,24 +71,26 @@ socket.on("joinLobby", username => {
 
   socket.username = username;
 
-  // aynı kullanıcıyı temizle
-  lobby = lobby.filter(s => s.username !== username);
+  // 🔥 aynı socket tekrar eklenmesin
+  lobby = lobby.filter(s => s.id !== socket.id);
 
-  // disconnected temizle
-lobby = lobby.filter(s => s.connected && s.id !== socket.id);
+  // 🔥 disconnected temizle
+  lobby = lobby.filter(s => s.connected);
 
   lobby.push(socket);
 
+  console.log("LOBBY:", lobby.map(s => s.username));
+
   io.emit("lobby", lobby.map(s => s.username));
 
-    // 🎯 OYUN BAŞLAT
- if (lobby.length >= 4) {
-  console.log("OYUN BAŞLIYOR", lobby.length);
+  // 🎮 OYUN BAŞLAT
+  if (lobby.length >= 4) {
+    console.log("OYUN BAŞLIYOR", lobby.length);
 
-  io.emit("startGame", lobby.map(s => s.username));
+    io.emit("startGame", lobby.map(s => s.username));
 
-  lobby = [];}
-
+    lobby = [];
+  }
 });
 
 
