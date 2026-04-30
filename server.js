@@ -1,127 +1,95 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
-
-const io = new Server(server, { cors: { origin: "*" } });
-
-app.use(express.json());
-app.use(express.static("public"));
-
-const ADMIN_USER = "ersin901";
-const ADMIN_PASS = "ersin9011";
-
-let users = fs.existsSync("users.json")
-  ? JSON.parse(fs.readFileSync("users.json"))
-  : {};
-
-function saveUsers() {
-  fs.writeFileSync("users.json", JSON.stringify(users, null, 2));
-}
-
-app.post("/login", (req, res) => {
-  const { username } = req.body;
-  if (!users[username]) {
-    users[username] = { wins: 0, losses: 0, games: [] };
-    saveUsers();
-  }
-  res.json({ ok: true });
+const io = new Server(server, {
+  cors: { origin: "*" }
 });
 
-app.get("/stats/:u", (req, res) => {
-  const u = users[req.params.u];
-  if (!u) return res.json({ wins: 0, losses: 0 });
-  const year = Date.now() - 365 * 24 * 60 * 60 * 1000;
-  const games = u.games.filter(g => g.date > year);
-  res.json({
-    wins: games.filter(g => g.win).length,
-    losses: games.filter(g => !g.win).length
-  });
-});
-
-app.post("/admin/login", (req, res) => {
-  const { username, password } = req.body;
-  res.json({ ok: username === ADMIN_USER && password === ADMIN_PASS });
-});
-
-app.get("/admin/users", (req, res) => res.json(users));
-
-app.delete("/admin/user/:name", (req, res) => {
-  delete users[req.params.name];
-  saveUsers();
-  res.json({ ok: true });
-});
-
-app.post("/admin/reset", (req, res) => {
-  Object.keys(users).forEach(u => {
-    users[u] = { wins: 0, losses: 0, games: [] };
-  });
-  saveUsers();
-  res.json({ ok: true });
-});
-
-let lobby = [];
+let lobby = {}; // username -> socket.id
 
 io.on("connection", socket => {
 
-socket.on("joinLobby", username => {
+  socket.on("joinLobby", username => {
 
-  socket.username = username;
+    socket.username = username;
 
-  // 🔥 aynı socket tekrar eklenmesin
-  lobby = lobby.filter(s => s.id !== socket.id);
+    // 🔥 aynı kullanıcı varsa güncelle (reconnect)
+    lobby[username] = socket.id;
 
-  // 🔥 disconnected temizle
-  lobby = lobby.filter(s => s.connected);
+    console.log("Lobby:", Object.keys(lobby));
 
-  lobby.push(socket);
+    // herkese gönder
+    io.emit("lobby", Object.keys(lobby));
 
-  console.log("LOBBY:", lobby.map(s => s.username));
+    // 🚀 OYUN BAŞLAT
+    if (Object.keys(lobby).length >= 4) {
 
-  io.emit("lobby", lobby.map(s => s.username));
+      const players = Object.keys(lobby);
 
-  // 🎮 OYUN BAŞLAT
-if (lobby.length >= 4) {
+      console.log("OYUN BAŞLIYOR:", players);
 
-  console.log("OYUN BAŞLIYOR", lobby.length);
+      startGame(players);
 
-  const players = lobby;
-
-  let deck = createDeck();
-
-  // 🎴 masaya 4 kart
-  let tableCards = deck.splice(0, 4);
-
-  // 🎴 oyunculara 4 kart
-  players.forEach(socket => {
-    socket.hand = deck.splice(0, 4);
+      lobby = {}; // reset
+    }
   });
 
-  // 🎴 her oyuncuya özel veri gönder
-  players.forEach(socket => {
-    socket.emit("gameData", {
-      hand: socket.hand,
-      table: tableCards
+  socket.on("disconnect", () => {
+    if (!socket.username) return;
+
+    delete lobby[socket.username];
+
+    io.emit("lobby", Object.keys(lobby));
+
+    console.log("Çıktı:", socket.username);
+  });
+});
+
+
+// 🎮 OYUN BAŞLAT
+function startGame(players) {
+
+  const sockets = players.map(name => io.sockets.sockets.get(lobby[name]));
+
+  const deck = createDeck();
+
+  const table = deck.splice(0, 4);
+
+  sockets.forEach(s => {
+    s.hand = deck.splice(0, 4);
+  });
+
+  // oyunculara kart gönder
+  sockets.forEach(s => {
+    s.emit("gameData", {
+      hand: s.hand,
+      table
     });
   });
 
-  // 🎮 oyun başlat
-  io.emit("startGame", players.map(s => s.username));
-
-  lobby = [];
+  // herkese oyuncuları gönder
+  io.emit("startGame", players);
 }
-});
 
 
+// 🃏 DESTE
+function createDeck() {
+  const suits = ["♠", "♥", "♦", "♣"];
+  const values = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
 
-  socket.on("disconnect", () => {
-    lobby = lobby.filter(s => s !== socket);
+  let deck = [];
 
-    io.emit("lobby", lobby.map(s => s.username));
-  });
+  for (let s of suits) {
+    for (let v of values) {
+      deck.push(v + s);
+    }
+  }
 
-});
+  return deck.sort(() => Math.random() - 0.5);
+}
+
+
 server.listen(3000, () => console.log("SERVER READY"));
