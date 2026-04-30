@@ -66,19 +66,28 @@ app.post("/admin/reset", (req, res) => {
 let lobby = [];
 
 io.on("connection", socket => {
+
   socket.on("joinLobby", username => {
+
     socket.username = username;
-    lobby.push(socket);
+
+    // aynı kullanıcı var mı kontrol
+    const already = lobby.find(s => s.username === username);
+
+    // YOKSA ekle
+    if(!already){
+      lobby.push(socket);
+    }
+
+    // herkese listeyi gönder
     io.emit("lobby", lobby.map(s => s.username));
   });
 
- socket.on("disconnect", () => {
-  lobby = lobby.filter(s => s !== socket);
+  socket.on("disconnect", () => {
+    lobby = lobby.filter(s => s !== socket);
 
-  io.emit("lobby", lobby.map(s => s.username));
-});
-    
+    io.emit("lobby", lobby.map(s => s.username));
   });
-});
 
+});
 server.listen(3000, () => console.log("SERVER READY"));
