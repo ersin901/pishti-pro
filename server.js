@@ -82,10 +82,12 @@ lobby = lobby.filter(s => s.connected && s.id !== socket.id);
   io.emit("lobby", lobby.map(s => s.username));
 
     // 🎯 OYUN BAŞLAT
-  if (lobby.length === 4) {
-    io.emit("startGame", lobby.map(s => s.username));
-    lobby = []; // lobby sıfırla (çok önemli)
-  }
+ if (lobby.length >= 4) {
+  console.log("OYUN BAŞLIYOR", lobby.length);
+
+  io.emit("startGame", lobby.map(s => s.username));
+
+  lobby = [];}
 
 });
 
