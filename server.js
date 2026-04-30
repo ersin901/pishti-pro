@@ -84,13 +84,35 @@ socket.on("joinLobby", username => {
   io.emit("lobby", lobby.map(s => s.username));
 
   // 🎮 OYUN BAŞLAT
-  if (lobby.length >= 4) {
-    console.log("OYUN BAŞLIYOR", lobby.length);
+if (lobby.length >= 4) {
 
-    io.emit("startGame", lobby.map(s => s.username));
+  console.log("OYUN BAŞLIYOR", lobby.length);
 
-    lobby = [];
-  }
+  const players = lobby;
+
+  let deck = createDeck();
+
+  // 🎴 masaya 4 kart
+  let tableCards = deck.splice(0, 4);
+
+  // 🎴 oyunculara 4 kart
+  players.forEach(socket => {
+    socket.hand = deck.splice(0, 4);
+  });
+
+  // 🎴 her oyuncuya özel veri gönder
+  players.forEach(socket => {
+    socket.emit("gameData", {
+      hand: socket.hand,
+      table: tableCards
+    });
+  });
+
+  // 🎮 oyun başlat
+  io.emit("startGame", players.map(s => s.username));
+
+  lobby = [];
+}
 });
 
 
