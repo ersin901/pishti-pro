@@ -67,21 +67,19 @@ let lobby = [];
 
 io.on("connection", socket => {
 
-  socket.on("joinLobby", username => {
+ socket.on("joinLobby", username => {
 
-    socket.username = username;
+  socket.username = username;
 
-    // aynı kullanıcı var mı kontrol
-    const already = lobby.find(s => s.username === username);
+  // 🔴 BURASI DEĞİŞTİ (ÖNEMLİ)
+  lobby = lobby.filter(s => s.username !== username);
 
-    // YOKSA ekle
-    if(!already){
-      lobby.push(socket);
-    }
+  lobby.push(socket);
 
-    // herkese listeyi gönder
-    io.emit("lobby", lobby.map(s => s.username));
-  });
+  io.emit("lobby", lobby.map(s => s.username));
+});
+
+
 
   socket.on("disconnect", () => {
     lobby = lobby.filter(s => s !== socket);
