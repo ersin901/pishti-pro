@@ -25,15 +25,21 @@ io.on("connection", socket => {
     io.emit("lobby", Object.keys(lobby));
 
     // 🚀 OYUN BAŞLAT
-    if (Object.keys(lobby).length >= 4) {
+if (Object.keys(lobby).length >= 4) {
 
-      const players = Object.keys(lobby);
+  const currentLobby = { ...lobby }; // 🔥 KRİTİK
 
-      console.log("OYUN BAŞLIYOR:", players);
+  const players = Object.keys(currentLobby);
 
-      startGame(players);
+  console.log("OYUN BAŞLIYOR:", players);
 
-      lobby = {}; // reset
+  const sockets = players.map(name =>
+    io.sockets.sockets.get(currentLobby[name])
+  );
+
+  startGame(sockets, players);
+
+  lobby = {};
     }
   });
 
