@@ -8,7 +8,8 @@ const io = new Server(server, {
   cors: { origin: "*" }
 });
 
-let lobby = {}; // username -> socket.id
+// 🔥 username -> socket
+let users = {};
 
 io.on("connection", socket => {
 
@@ -16,49 +17,40 @@ io.on("connection", socket => {
 
     socket.username = username;
 
-    // 🔥 aynı kullanıcı varsa güncelle (reconnect)
-    lobby[username] = socket.id;
+    // kullanıcıyı kaydet
+    users[username] = socket;
 
-    console.log("Lobby:", Object.keys(lobby));
+    console.log("Lobby:", Object.keys(users));
 
-    // herkese gönder
-    io.emit("lobby", Object.keys(lobby));
+    io.emit("lobby", Object.keys(users));
 
-    // 🚀 OYUN BAŞLAT
-if (Object.keys(lobby).length >= 4) {
+    // 🎮 OYUN BAŞLAT
+    if (Object.keys(users).length >= 4) {
 
-  const currentLobby = { ...lobby };
+      const players = Object.keys(users);
+      const sockets = players.map(name => users[name]);
 
-  const players = Object.keys(currentLobby);
+      console.log("OYUN BAŞLIYOR:", players);
 
-  console.log("OYUN BAŞLIYOR:", players);
+      startGame(sockets, players);
 
-  const sockets = players.map(name =>
-    io.sockets.sockets.get(currentLobby[name])
-  );
-
-  // 🔥 ÖNCE OYUNU BAŞLAT
-  startGame(sockets, players);
-
-  // 🔥 EN SON SİL
-  setTimeout(() => {
-    lobby = {};
-  }, 1000);
-}
+      users = {}; // reset
+    }
   });
 
   socket.on("disconnect", () => {
     if (!socket.username) return;
 
-    delete lobby[socket.username];
+    delete users[socket.username];
 
-    io.emit("lobby", Object.keys(lobby));
+    io.emit("lobby", Object.keys(users));
 
     console.log("Çıktı:", socket.username);
   });
 });
 
 
+// 🎮 OYUN
 function startGame(sockets, players) {
 
   const deck = createDeck();
@@ -66,26 +58,25 @@ function startGame(sockets, players) {
   const table = deck.splice(0, 4);
 
   sockets.forEach(s => {
-    if (!s) return;
     s.hand = deck.splice(0, 4);
   });
 
+  // 🔥 ÖNCE gameData
   sockets.forEach(s => {
-    if (!s) return;
-
-    console.log("GAME DATA GÖNDERİLDİ:", s.username);
-
     s.emit("gameData", {
       hand: s.hand,
       table
     });
   });
 
+  // 🔥 SONRA startGame
   io.emit("startGame", players);
 }
+
+
 // 🃏 DESTE
 function createDeck() {
-  const suits = ["♠", "♥", "♦", "♣"];
+  const suits = ["♠","♥","♦","♣"];
   const values = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
 
   let deck = [];
@@ -98,6 +89,5 @@ function createDeck() {
 
   return deck.sort(() => Math.random() - 0.5);
 }
-
 
 server.listen(3000, () => console.log("SERVER READY"));
