@@ -55,28 +55,26 @@ if (Object.keys(lobby).length >= 4) {
 });
 
 
-// 🎮 OYUN BAŞLAT
-function startGame(players) {
-
-  const sockets = players.map(name => io.sockets.sockets.get(lobby[name]));
+function startGame(sockets, players) {
 
   const deck = createDeck();
 
   const table = deck.splice(0, 4);
 
   sockets.forEach(s => {
+    if (!s) return;
     s.hand = deck.splice(0, 4);
   });
 
-  // oyunculara kart gönder
   sockets.forEach(s => {
+    if (!s) return;
+
     s.emit("gameData", {
       hand: s.hand,
       table
     });
   });
 
-  // herkese oyuncuları gönder
   io.emit("startGame", players);
 }
 
