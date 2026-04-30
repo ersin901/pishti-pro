@@ -27,7 +27,7 @@ io.on("connection", socket => {
     // 🚀 OYUN BAŞLAT
 if (Object.keys(lobby).length >= 4) {
 
-  const currentLobby = { ...lobby }; // 🔥 KRİTİK
+  const currentLobby = { ...lobby };
 
   const players = Object.keys(currentLobby);
 
@@ -37,10 +37,14 @@ if (Object.keys(lobby).length >= 4) {
     io.sockets.sockets.get(currentLobby[name])
   );
 
+  // 🔥 ÖNCE OYUNU BAŞLAT
   startGame(sockets, players);
 
-  lobby = {};
-    }
+  // 🔥 EN SON SİL
+  setTimeout(() => {
+    lobby = {};
+  }, 1000);
+}
   });
 
   socket.on("disconnect", () => {
@@ -69,6 +73,8 @@ function startGame(sockets, players) {
   sockets.forEach(s => {
     if (!s) return;
 
+    console.log("GAME DATA GÖNDERİLDİ:", s.username);
+
     s.emit("gameData", {
       hand: s.hand,
       table
@@ -77,8 +83,6 @@ function startGame(sockets, players) {
 
   io.emit("startGame", players);
 }
-
-
 // 🃏 DESTE
 function createDeck() {
   const suits = ["♠", "♥", "♦", "♣"];
